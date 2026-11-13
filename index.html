@@ -1,0 +1,418 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="color-scheme" content="light dark" />
+<link rel="icon" href="data:," />
+<title>Diesel vs EV Cost Calculator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#f4f5f1; --surface:#ffffff; --surface2:#eceee6; --ink:#17201b; --muted:#5c6a61;
+    --line:#d9ddd2; --diesel:#c25e10; --diesel-soft:#fbeedd; --ev:#0d7a5f; --ev-soft:#e2f3ec;
+    --accent:#0d7a5f; --warn-bg:#fff7e8; --shadow:0 10px 28px rgba(23,32,27,.08);
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --bg:#101512; --surface:#1a211d; --surface2:#232c27; --ink:#eef3ee; --muted:#a7b5ab;
+      --line:#333f37; --diesel:#eba04f; --diesel-soft:#2e2317; --ev:#3ecfa5; --ev-soft:#173129;
+      --accent:#3ecfa5; --warn-bg:#2b2416; --shadow:0 10px 28px rgba(0,0,0,.35);
+    }
+  }
+  *{box-sizing:border-box}
+  html{-webkit-text-size-adjust:100%}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:"Hind Siliguri",system-ui,-apple-system,"Segoe UI",sans-serif;line-height:1.55}
+  .wrap{max-width:1080px;margin:0 auto;padding:20px 16px 48px}
+  h1{font-size:clamp(26px,5vw,40px);line-height:1.15;margin:6px 0 8px;font-weight:700;letter-spacing:-.01em}
+  .lead{color:var(--muted);font-size:17px;max-width:640px;margin:0 0 18px}
+  .lead b{color:var(--ink)}
+  .presets{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 18px}
+  .presets button{
+    min-height:40px;padding:8px 14px;border-radius:999px;border:1px solid var(--line);
+    background:var(--surface);color:var(--ink);font:inherit;font-weight:600;font-size:15px;cursor:pointer;
+  }
+  .presets button.active{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+  .layout{display:grid;grid-template-columns:400px 1fr;gap:18px;align-items:start}
+  .layout>*{min-width:0}
+  @media (max-width:860px){.layout{grid-template-columns:1fr}}
+  .panel{background:var(--surface);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow);min-width:0;overflow:hidden}
+  .panel h2{font-size:18px;margin:0 0 4px}
+  .panel .sub{color:var(--muted);font-size:14px;margin:0 0 14px}
+  .inputs{padding:20px}
+  .group{border-top:1px solid var(--line);padding:14px 0 4px;margin-top:14px}
+  .group:first-of-type{border-top:0;margin-top:2px;padding-top:6px}
+  .group h3{font-size:15px;margin:0 0 10px;display:flex;align-items:center;gap:8px}
+  .dot{width:10px;height:10px;border-radius:50%;flex:none}
+  .dot.d{background:var(--diesel)} .dot.e{background:var(--ev)} .dot.n{background:var(--muted)}
+  .field{margin-bottom:14px}
+  .field label{display:flex;justify-content:space-between;align-items:baseline;gap:10px;font-size:15px;font-weight:600;margin-bottom:6px}
+  .field label .unit{color:var(--muted);font-weight:400;font-size:13px;white-space:nowrap}
+  .row{display:flex;gap:10px;align-items:center;min-width:0}
+  input[type=number]{
+    width:110px;flex:0 1 110px;min-width:0;min-height:44px;padding:8px 10px;border-radius:10px;border:1px solid var(--line);
+    background:var(--surface);color:var(--ink);font-family:"IBM Plex Mono",monospace;font-size:16px;text-align:right;
+  }
+  input[type=range]{flex:1 1 auto;min-width:0;min-height:44px;accent-color:var(--accent);width:auto}
+  @media (max-width:480px){
+    .row{flex-wrap:wrap}
+    input[type=range]{flex:1 1 100%;order:2}
+    input[type=number]{flex:0 0 110px;order:1;margin-left:auto}
+    .field label{flex-wrap:wrap}
+  }
+  input:focus-visible,button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+  .hint{font-size:13px;color:var(--muted);margin:2px 0 0}
+
+  .results{padding:20px}
+  .verdict{
+    border-radius:14px;padding:18px;background:var(--ev-soft);border:1px solid var(--line);margin-bottom:16px;
+  }
+  .verdict .k{font-size:14px;color:var(--muted);font-weight:600}
+  .verdict .big{font-size:clamp(30px,6vw,44px);font-weight:700;line-height:1.1;font-family:"IBM Plex Mono",monospace;letter-spacing:-.02em}
+  .verdict .per{font-size:16px;margin-top:2px}
+  .verdict .per b{color:var(--ev)}
+  .cards{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px}
+  @media (max-width:520px){.cards{grid-template-columns:1fr}}
+  .card{border:1px solid var(--line);border-radius:14px;padding:16px}
+  .card.diesel{background:var(--diesel-soft)} .card.ev{background:var(--ev-soft)}
+  .card h3{margin:0 0 2px;font-size:16px}
+  .card .perkm{font-family:"IBM Plex Mono",monospace;font-size:26px;font-weight:600;line-height:1.2}
+  .card .perkm small{font-size:14px;color:var(--muted);font-family:"Hind Siliguri",sans-serif}
+  .card dl{margin:10px 0 0;display:grid;grid-template-columns:auto 1fr;gap:2px 12px;font-size:14px}
+  .card dt{color:var(--muted)} .card dd{margin:0;text-align:right;font-family:"IBM Plex Mono",monospace;font-size:14px}
+  .barwrap{margin:6px 0 18px}
+  .barrow{display:grid;grid-template-columns:86px 1fr auto;gap:10px;align-items:center;margin-bottom:10px;font-size:14px}
+  .barrow .name{font-weight:600}
+  .track{height:26px;background:var(--surface2);border-radius:8px;overflow:hidden}
+  .fill{height:100%;border-radius:8px;transition:width .35s ease}
+  .fill.d{background:var(--diesel)} .fill.e{background:var(--ev)}
+  .barrow .val{font-family:"IBM Plex Mono",monospace;font-size:14px;white-space:nowrap}
+  table{width:100%;border-collapse:collapse;font-size:15px}
+  th,td{padding:9px 8px;border-top:1px solid var(--line);text-align:right}
+  th:first-child,td:first-child{text-align:left}
+  thead th{border-top:0;color:var(--muted);font-size:13px;font-weight:600}
+  td.num,th.num{font-family:"IBM Plex Mono",monospace;font-size:14px}
+  tr.total td{font-weight:700;border-top:2px solid var(--line)}
+  .savecol{color:var(--ev);font-weight:600}
+  .env{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:16px}
+  @media (max-width:520px){.env{grid-template-columns:1fr}}
+  .env .box{border:1px solid var(--line);border-radius:14px;padding:14px 16px;background:var(--surface2)}
+  .env .box .k{font-size:13px;color:var(--muted);font-weight:600}
+  .env .box .v{font-family:"IBM Plex Mono",monospace;font-size:20px;font-weight:600}
+  .note{margin-top:18px;background:var(--warn-bg);border:1px solid var(--line);border-radius:14px;padding:14px 16px;font-size:14px;color:var(--ink)}
+  .note b{display:block;margin-bottom:4px}
+  .formula{font-family:"IBM Plex Mono",monospace;font-size:13px;display:block;margin-top:6px;word-break:break-word}
+  @media (max-width:480px){
+    th,td{padding:8px 4px;font-size:13px}
+    td.num,th.num{font-size:12.5px}
+    .barrow{grid-template-columns:60px 1fr auto;gap:8px}
+    .barrow .val{font-size:13px}
+    .inputs,.results{padding:16px}
+  }
+  footer{color:var(--muted);font-size:13px;margin-top:22px;text-align:center}
+  @media (prefers-reduced-motion: reduce){.fill{transition:none}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Diesel vs EV — Cost Difference</h1>
+  <p class="lead">How much it costs to cover the same distance in a diesel vehicle versus charging an electric vehicle (EV), calculated side by side. Change any number below and the results update instantly. The default setup is <b>20 buses, 40 km per day</b>.</p>
+
+  <div class="presets" role="group" aria-label="Choose a ready-made scenario">
+    <button type="button" data-preset="bus" class="active">Bus fleet — 20 buses</button>
+    <button type="button" data-preset="onebus">Single bus</button>
+    <button type="button" data-preset="car">Private car</button>
+    <button type="button" data-preset="micro">Microbus / Pickup</button>
+  </div>
+
+  <div class="layout">
+    <!-- INPUTS -->
+    <section class="panel inputs" aria-label="Calculation inputs">
+      <h2>Enter your numbers</h2>
+      <p class="sub">Drag a slider or type a number directly into the box.</p>
+
+      <div class="group">
+        <h3><span class="dot n"></span>Usage</h3>
+        <div class="field">
+          <label for="vehicles">Number of vehicles <span class="unit">vehicles</span></label>
+          <div class="row">
+            <input type="range" id="vehicles_r" min="1" max="100" step="1" value="20">
+            <input type="number" id="vehicles" min="1" max="1000" step="1" value="20">
+          </div>
+        </div>
+        <div class="field">
+          <label for="dailyKm">Distance per vehicle per day <span class="unit">km / day</span></label>
+          <div class="row">
+            <input type="range" id="dailyKm_r" min="5" max="300" step="1" value="40">
+            <input type="number" id="dailyKm" min="1" max="1000" step="1" value="40">
+          </div>
+        </div>
+        <div class="field">
+          <label for="days">Running days per month <span class="unit">days / month</span></label>
+          <div class="row">
+            <input type="range" id="days_r" min="1" max="31" step="1" value="30">
+            <input type="number" id="days" min="1" max="31" step="1" value="30">
+          </div>
+        </div>
+      </div>
+
+      <div class="group">
+        <h3><span class="dot d"></span>Diesel vehicle</h3>
+        <div class="field">
+          <label for="mileage">Mileage <span class="unit">km / litre</span></label>
+          <div class="row">
+            <input type="range" id="mileage_r" min="2" max="20" step="0.1" value="4">
+            <input type="number" id="mileage" min="0.5" max="40" step="0.1" value="4">
+          </div>
+          <p class="hint">A large bus usually does 3–5 km/litre; a private car does 10–14 km/litre.</p>
+        </div>
+        <div class="field">
+          <label for="dieselPrice">Diesel price <span class="unit">BDT / litre</span></label>
+          <div class="row">
+            <input type="range" id="dieselPrice_r" min="80" max="200" step="1" value="135">
+            <input type="number" id="dieselPrice" min="1" max="500" step="1" value="135">
+          </div>
+        </div>
+        <div class="field">
+          <label for="dieselMaint">Maintenance cost <span class="unit">BDT / km</span></label>
+          <div class="row">
+            <input type="range" id="dieselMaint_r" min="0" max="20" step="0.5" value="0">
+            <input type="number" id="dieselMaint" min="0" max="100" step="0.5" value="0">
+          </div>
+        </div>
+      </div>
+
+      <div class="group">
+        <h3><span class="dot e"></span>Electric vehicle (EV)</h3>
+        <div class="field">
+          <label for="evUse">Electricity consumption <span class="unit">kWh / km</span></label>
+          <div class="row">
+            <input type="range" id="evUse_r" min="0.1" max="2.5" step="0.05" value="1.2">
+            <input type="number" id="evUse" min="0.05" max="5" step="0.05" value="1.2">
+          </div>
+          <p class="hint">An electric bus uses about 1.0–1.3 kWh/km; an electric car uses about 0.15 kWh/km.</p>
+        </div>
+        <div class="field">
+          <label for="elecPrice">Charging tariff <span class="unit">BDT / kWh (unit)</span></label>
+          <div class="row">
+            <input type="range" id="elecPrice_r" min="5" max="30" step="0.01" value="11.36">
+            <input type="number" id="elecPrice" min="1" max="100" step="0.01" value="11.36">
+          </div>
+        </div>
+        <div class="field">
+          <label for="evMaint">Maintenance cost <span class="unit">BDT / km</span></label>
+          <div class="row">
+            <input type="range" id="evMaint_r" min="0" max="20" step="0.5" value="0">
+            <input type="number" id="evMaint" min="0" max="100" step="0.5" value="0">
+          </div>
+          <p class="hint">Leave both maintenance fields at 0 if you don't want to count maintenance — then it compares fuel cost versus charging cost only.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- RESULTS -->
+    <section class="panel results" aria-label="Results" aria-live="polite">
+      <div class="verdict">
+        <div class="k">Monthly saving by switching to EV</div>
+        <div class="big" id="saveMonth">—</div>
+        <div class="per">Yearly saving <b id="saveYear">—</b> · Cost reduced by <b id="savePct">—</b></div>
+      </div>
+
+      <div class="cards">
+        <div class="card diesel">
+          <h3>⛽ Diesel</h3>
+          <div class="perkm"><span id="dieselPerKm">—</span> <small>BDT / km</small></div>
+          <dl>
+            <dt>Fuel only</dt><dd id="dieselFuelKm">—</dd>
+            <dt>Diesel needed per month</dt><dd id="dieselLitres">—</dd>
+            <dt>Total cost per day</dt><dd id="dieselDay">—</dd>
+          </dl>
+        </div>
+        <div class="card ev">
+          <h3>🔋 Electric (EV)</h3>
+          <div class="perkm"><span id="evPerKm">—</span> <small>BDT / km</small></div>
+          <dl>
+            <dt>Charging only</dt><dd id="evFuelKm">—</dd>
+            <dt>Electricity needed per month</dt><dd id="evKwh">—</dd>
+            <dt>Total cost per day</dt><dd id="evDay">—</dd>
+          </dl>
+        </div>
+      </div>
+
+      <h2 style="font-size:16px;margin:0 0 10px">Monthly cost comparison</h2>
+      <div class="barwrap">
+        <div class="barrow">
+          <span class="name">Diesel</span>
+          <div class="track"><div class="fill d" id="barDiesel" style="width:100%"></div></div>
+          <span class="val" id="barDieselVal">—</span>
+        </div>
+        <div class="barrow">
+          <span class="name">EV</span>
+          <div class="track"><div class="fill e" id="barEv" style="width:0%"></div></div>
+          <span class="val" id="barEvVal">—</span>
+        </div>
+      </div>
+
+      <table aria-label="Cost by time period">
+        <thead>
+          <tr><th>Period</th><th class="num">Diesel (BDT)</th><th class="num">EV (BDT)</th><th class="num">Saving (BDT)</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Per day (all vehicles)</td><td class="num" id="tDayD">—</td><td class="num" id="tDayE">—</td><td class="num savecol" id="tDayS">—</td></tr>
+          <tr><td>Per month</td><td class="num" id="tMonD">—</td><td class="num" id="tMonE">—</td><td class="num savecol" id="tMonS">—</td></tr>
+          <tr><td>Per year</td><td class="num" id="tYearD">—</td><td class="num" id="tYearE">—</td><td class="num savecol" id="tYearS">—</td></tr>
+          <tr><td>Per vehicle — per month</td><td class="num" id="tOneD">—</td><td class="num" id="tOneE">—</td><td class="num savecol" id="tOneS">—</td></tr>
+          <tr class="total"><td>Over 5 years</td><td class="num" id="t5D">—</td><td class="num" id="t5E">—</td><td class="num savecol" id="t5S">—</td></tr>
+        </tbody>
+      </table>
+
+      <div class="env">
+        <div class="box">
+          <div class="k">CO₂ from burning diesel (per month)</div>
+          <div class="v" id="co2Diesel">—</div>
+        </div>
+        <div class="box">
+          <div class="k">CO₂ from EV charging (per month, grid electricity)</div>
+          <div class="v" id="co2Ev">—</div>
+        </div>
+      </div>
+
+      <div class="note">
+        <b>How the calculation works</b>
+        Diesel cost = (total km ÷ mileage) × diesel price. EV cost = total km × kWh/km × tariff. If you enter a maintenance cost, it is added to the per-km cost.
+        <span class="formula">Total km / month = number of vehicles × km per day × days per month</span>
+        CO₂ is calculated at 2.68 kg/litre for diesel and 0.67 kg/kWh for grid electricity — approximate values, for comparison only. The vehicle purchase price is not included in this calculation.
+      </div>
+    </section>
+  </div>
+
+  <footer>If prices or tariffs change, enter the new numbers in the boxes above — the results update automatically.</footer>
+</div>
+
+<script>
+(function(){
+  var fields = ["vehicles","dailyKm","days","mileage","dieselPrice","dieselMaint","evUse","elecPrice","evMaint"];
+  var els = {};
+  fields.forEach(function(f){
+    els[f] = document.getElementById(f);
+    els[f+"_r"] = document.getElementById(f+"_r");
+  });
+
+  function val(id){
+    var v = parseFloat(els[id].value);
+    return isFinite(v) && v >= 0 ? v : 0;
+  }
+  // Indian-style grouping (lakh/crore) number format
+  function fmt(n, dec){
+    dec = dec || 0;
+    var neg = n < 0; n = Math.abs(n);
+    var parts = n.toFixed(dec).split(".");
+    var int = parts[0], out = "", i;
+    if (int.length > 3){
+      var last3 = int.slice(-3), rest = int.slice(0,-3);
+      var groups = [];
+      while (rest.length > 2){ groups.unshift(rest.slice(-2)); rest = rest.slice(0,-2); }
+      if (rest) groups.unshift(rest);
+      out = groups.join(",") + "," + last3;
+    } else out = int;
+    return (neg ? "−" : "") + out + (parts[1] ? "." + parts[1] : "");
+  }
+  function taka(n){ return "৳" + fmt(Math.round(n)); }
+
+  function calc(){
+    var vehicles = Math.max(val("vehicles"), 0);
+    var dailyKm = val("dailyKm");
+    var days = val("days");
+    var mileage = val("mileage");
+    var dieselPrice = val("dieselPrice");
+    var dieselMaint = val("dieselMaint");
+    var evUse = val("evUse");
+    var elecPrice = val("elecPrice");
+    var evMaint = val("evMaint");
+
+    var totalKmDay = vehicles * dailyKm;
+    var totalKmMonth = totalKmDay * days;
+    var totalKmYear = totalKmMonth * 12;
+
+    var dieselFuelKm = mileage > 0 ? dieselPrice / mileage : 0;
+    var evFuelKm = evUse * elecPrice;
+    var dieselPerKm = dieselFuelKm + dieselMaint;
+    var evPerKm = evFuelKm + evMaint;
+
+    var dDay = totalKmDay * dieselPerKm, eDay = totalKmDay * evPerKm;
+    var dMon = totalKmMonth * dieselPerKm, eMon = totalKmMonth * evPerKm;
+    var dYear = totalKmYear * dieselPerKm, eYear = totalKmYear * evPerKm;
+    var litresMonth = mileage > 0 ? totalKmMonth / mileage : 0;
+    var kwhMonth = totalKmMonth * evUse;
+
+    function set(id, txt){ document.getElementById(id).textContent = txt; }
+
+    set("saveMonth", taka(dMon - eMon));
+    set("saveYear", taka(dYear - eYear));
+    set("savePct", dMon > 0 ? fmt((dMon - eMon) / dMon * 100, 1) + "%" : "—");
+
+    set("dieselPerKm", fmt(dieselPerKm, 2));
+    set("evPerKm", fmt(evPerKm, 2));
+    set("dieselFuelKm", fmt(dieselFuelKm, 2) + " BDT/km");
+    set("evFuelKm", fmt(evFuelKm, 2) + " BDT/km");
+    set("dieselLitres", fmt(litresMonth) + " litres");
+    set("evKwh", fmt(kwhMonth) + " kWh");
+    set("dieselDay", taka(dDay));
+    set("evDay", taka(eDay));
+
+    var max = Math.max(dMon, eMon, 1);
+    document.getElementById("barDiesel").style.width = (dMon / max * 100) + "%";
+    document.getElementById("barEv").style.width = (eMon / max * 100) + "%";
+    set("barDieselVal", taka(dMon));
+    set("barEvVal", taka(eMon));
+
+    set("tDayD", fmt(dDay)); set("tDayE", fmt(eDay)); set("tDayS", fmt(dDay - eDay));
+    set("tMonD", fmt(dMon)); set("tMonE", fmt(eMon)); set("tMonS", fmt(dMon - eMon));
+    set("tYearD", fmt(dYear)); set("tYearE", fmt(eYear)); set("tYearS", fmt(dYear - eYear));
+    var oneD = vehicles > 0 ? dMon / vehicles : 0, oneE = vehicles > 0 ? eMon / vehicles : 0;
+    set("tOneD", fmt(oneD)); set("tOneE", fmt(oneE)); set("tOneS", fmt(oneD - oneE));
+    set("t5D", fmt(dYear * 5)); set("t5E", fmt(eYear * 5)); set("t5S", fmt((dYear - eYear) * 5));
+
+    set("co2Diesel", fmt(litresMonth * 2.68 / 1000, 1) + " tonnes");
+    set("co2Ev", fmt(kwhMonth * 0.67 / 1000, 1) + " tonnes");
+  }
+
+  fields.forEach(function(f){
+    els[f].addEventListener("input", function(){
+      if (els[f+"_r"]) els[f+"_r"].value = els[f].value;
+      clearPresets(); calc();
+    });
+    if (els[f+"_r"]) els[f+"_r"].addEventListener("input", function(){
+      els[f].value = els[f+"_r"].value;
+      clearPresets(); calc();
+    });
+  });
+
+  var presetBtns = document.querySelectorAll("[data-preset]");
+  function clearPresets(){ presetBtns.forEach(function(b){ b.classList.remove("active"); }); }
+  var presets = {
+    bus:    { vehicles:20, dailyKm:40, days:30, mileage:4,   dieselPrice:135, dieselMaint:0, evUse:1.2,  elecPrice:11.36, evMaint:0 },
+    onebus: { vehicles:1,  dailyKm:40, days:30, mileage:4,   dieselPrice:135, dieselMaint:0, evUse:1.2,  elecPrice:11.36, evMaint:0 },
+    car:    { vehicles:1,  dailyKm:30, days:30, mileage:12,  dieselPrice:135, dieselMaint:0, evUse:0.15, elecPrice:11.36, evMaint:0 },
+    micro:  { vehicles:1,  dailyKm:80, days:26, mileage:8,   dieselPrice:135, dieselMaint:0, evUse:0.35, elecPrice:11.36, evMaint:0 }
+  };
+  presetBtns.forEach(function(btn){
+    btn.addEventListener("click", function(){
+      var p = presets[btn.getAttribute("data-preset")];
+      if (!p) return;
+      fields.forEach(function(f){
+        els[f].value = p[f];
+        if (els[f+"_r"]) els[f+"_r"].value = p[f];
+      });
+      clearPresets(); btn.classList.add("active");
+      calc();
+    });
+  });
+
+  calc();
+})();
+</script>
+</body>
+</html>
